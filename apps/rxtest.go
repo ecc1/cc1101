@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/ecc1/cc1101"
 )
@@ -14,18 +15,17 @@ func main() {
 		log.Fatalf("Usage: %s frequency", os.Args[0])
 	}
 	frequency := getFrequency(os.Args[1])
+	r := cc1101.Open()
+	if r.Error() != nil {
+		log.Fatal(r.Error())
+	}
 	log.Printf("setting frequency to %d", frequency)
-	r, err := cc1101.Open()
-	if err != nil {
-		log.Fatal(err)
+	r.Init(frequency)
+	for r.Error() == nil {
+		data, rssi := r.Receive(time.Hour)
+		log.Printf("% X (RSSI = %d)", data, rssi)
 	}
-	err = r.Init(frequency)
-	if err != nil {
-		log.Fatal(err)
-	}
-	for packet := range r.Incoming() {
-		log.Printf("% X (RSSI = %d)", packet.Data, packet.Rssi)
-	}
+	log.Fatal(r.Error())
 }
 
 func getFrequency(s string) uint32 {
