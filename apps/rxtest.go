@@ -15,7 +15,7 @@ func main() {
 		log.Fatalf("Usage: %s frequency", os.Args[0])
 	}
 	frequency := getFrequency(os.Args[1])
-	r := cc1101.Open()
+	r := cc1101.Open().(*cc1101.Radio)
 	if r.Error() != nil {
 		log.Fatal(r.Error())
 	}
