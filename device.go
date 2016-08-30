@@ -8,25 +8,30 @@ import (
 )
 
 const (
-	spiSpeed  = 6000000 // Hz
-	hwVersion = 0x0014
+	spiSpeed     = 6000000 // Hz
+	interruptPin = 46      // Intel Edison GPIO for receive interrupts
+	hwVersion    = 0x0014
 )
 
 type flavor struct{}
 
-func (hw flavor) Name() string {
+func (f flavor) Name() string {
 	return "CC1101"
 }
 
-func (hw flavor) Speed() int {
+func (f flavor) Speed() int {
 	return spiSpeed
 }
 
-func (hw flavor) ReadSingleAddress(addr byte) byte {
+func (f flavor) InterruptPin() int {
+	return interruptPin
+}
+
+func (f flavor) ReadSingleAddress(addr byte) byte {
 	return READ_MODE | addr
 }
 
-func (hw flavor) ReadBurstAddress(addr byte) byte {
+func (f flavor) ReadBurstAddress(addr byte) byte {
 	reg := addr & 0x3F
 	if 0x30 <= reg && reg <= 0x3D {
 		log.Panicf("no burst access for CC1101 status register %02X", reg)
@@ -34,11 +39,11 @@ func (hw flavor) ReadBurstAddress(addr byte) byte {
 	return READ_MODE | BURST_MODE | addr
 }
 
-func (hw flavor) WriteSingleAddress(addr byte) byte {
+func (f flavor) WriteSingleAddress(addr byte) byte {
 	return addr
 }
 
-func (hw flavor) WriteBurstAddress(addr byte) byte {
+func (f flavor) WriteBurstAddress(addr byte) byte {
 	return BURST_MODE | addr
 }
 
