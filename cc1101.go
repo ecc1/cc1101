@@ -394,10 +394,10 @@ const (
 	FOCCFG_FOC_LIMIT_BW_OVER_4     = 2 << 0
 	FOCCFG_FOC_LIMIT_BW_OVER_2     = 3 << 0
 
-	BSCFG_BS_PRE_K_1K              = 0 << 6
-	BSCFG_BS_PRE_K_2K              = 1 << 6
-	BSCFG_BS_PRE_K_3K              = 2 << 6
-	BSCFG_BS_PRE_K_4K              = 3 << 6
+	BSCFG_BS_PRE_KI_1KI            = 0 << 6
+	BSCFG_BS_PRE_KI_2KI            = 1 << 6
+	BSCFG_BS_PRE_KI_3KI            = 2 << 6
+	BSCFG_BS_PRE_KI_4KI            = 3 << 6
 	BSCFG_BS_PRE_KP_1KP            = 0 << 4
 	BSCFG_BS_PRE_KP_2KP            = 1 << 4
 	BSCFG_BS_PRE_KP_3KP            = 2 << 4
