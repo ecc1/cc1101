@@ -251,20 +251,20 @@ const (
 )
 
 const (
-	STATE_IDLE = iota
-	STATE_RX
-	STATE_TX
-	STATE_FSTXON
-	STATE_CALIBRATE
-	STATE_SETTLING
-	STATE_RXFIFO_OVERFLOW
-	STATE_TXFIFO_UNDERFLOW
+	STATE_IDLE             = 0x0
+	STATE_RX               = 0x1
+	STATE_TX               = 0x2
+	STATE_FSTXON           = 0x3
+	STATE_CALIBRATE        = 0x4
+	STATE_SETTLING         = 0x5
+	STATE_RXFIFO_OVERFLOW  = 0x6
+	STATE_TXFIFO_UNDERFLOW = 0x7
 
 	// status bits 6:4
 	STATE_MASK  = 0x7
 	STATE_SHIFT = 4
 
-	CHIP_RDY = 0x80
+	CHIP_RDY = 1 << 7
 )
 
 const (
