@@ -156,25 +156,25 @@ func (r *Radio) ReadIF() uint32 {
 	return uint32(uint64(f) * FXOSC >> 10)
 }
 
-func (r *Radio) ReadChannelParams() (chanbw uint32, drate uint32) {
+func (r *Radio) ReadChannelParams() (uint32, uint32) {
 	m4 := r.hw.ReadRegister(MDMCFG4)
 	chanbw_E := (m4 >> MDMCFG4_CHANBW_E_SHIFT) & 0x3
 	chanbw_M := (m4 >> MDMCFG4_CHANBW_M_SHIFT) & 0x3
 	drate_E := (m4 >> MDMCFG4_DRATE_E_SHIFT) & 0xF
 	drate_M := r.hw.ReadRegister(MDMCFG3)
-	chanbw = uint32(FXOSC / ((4 + uint64(chanbw_M)) << (chanbw_E + 3)))
-	drate = uint32(((256 + uint64(drate_M)) << drate_E * FXOSC) >> 28)
-	return
+	chanbw := uint32(FXOSC / ((4 + uint64(chanbw_M)) << (chanbw_E + 3)))
+	drate := uint32(((256 + uint64(drate_M)) << drate_E * FXOSC) >> 28)
+	return chanbw, drate
 }
 
-func (r *Radio) ReadModemConfig() (fec bool, minPreamble byte, chanspc uint32) {
+func (r *Radio) ReadModemConfig() (bool, uint8, uint32) {
 	m1 := r.hw.ReadRegister(MDMCFG1)
-	fec = m1&MDMCFG1_FEC_EN != 0
-	minPreamble = numPreamble[(m1&MDMCFG1_NUM_PREAMBLE_MASK)>>4]
+	fec := m1&MDMCFG1_FEC_EN != 0
+	minPreamble := numPreamble[(m1&MDMCFG1_NUM_PREAMBLE_MASK)>>4]
 	chanspc_E := m1 & MDMCFG1_CHANSPC_E_MASK
 	chanspc_M := r.hw.ReadRegister(MDMCFG0)
-	chanspc = uint32(((256 + uint64(chanspc_M)) << chanspc_E * FXOSC) >> 18)
-	return
+	chanspc := uint32(((256 + uint64(chanspc_M)) << chanspc_E * FXOSC) >> 18)
+	return fec, minPreamble, chanspc
 }
 
 func (r *Radio) ReadRSSI() int {
