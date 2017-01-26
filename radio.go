@@ -10,7 +10,7 @@ const (
 	verbose            = false
 	maxPacketSize      = 110
 	fifoSize           = 64
-	readFifoUsingBurst = true
+	readFIFOUsingBurst = true
 
 	// Approximate time for one byte to be transmitted, based on the data rate.
 	byteDuration = time.Millisecond
@@ -62,7 +62,7 @@ func (r *Radio) transmit(data []byte) {
 		// Err on the short side here to avoid TXFIFO underflow.
 		time.Sleep(fifoSize / 4 * byteDuration)
 		for r.Error() == nil {
-			n := r.ReadNumTxBytes()
+			n := r.ReadNumTXBytes()
 			if n < fifoSize {
 				avail = fifoSize - int(n)
 				if avail > len(data) {
@@ -72,14 +72,14 @@ func (r *Radio) transmit(data []byte) {
 			}
 		}
 	}
-	r.finishTx(avail)
+	r.finishTX(avail)
 }
 
-func (r *Radio) finishTx(numBytes int) {
+func (r *Radio) finishTX(numBytes int) {
 	time.Sleep(time.Duration(numBytes) * byteDuration)
 	for r.Error() == nil {
-		n := r.ReadNumTxBytes()
-		if n == 0 || r.Error() == TxFifoUnderflow {
+		n := r.ReadNumTXBytes()
+		if n == 0 || r.Error() == TXFIFOUnderflow {
 			break
 		}
 		s := r.ReadState()
@@ -109,8 +109,8 @@ func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 	rssi := r.ReadRSSI()
 	startedWaiting := time.Time{}
 	for r.Error() == nil {
-		numBytes := r.ReadNumRxBytes()
-		if r.Error() == RxFifoOverflow {
+		numBytes := r.ReadNumRXBytes()
+		if r.Error() == RXFIFOOverflow {
 			// Flush RX FIFO and change back to RX.
 			r.changeState(SRX, STATE_RX)
 			continue
@@ -126,7 +126,7 @@ func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 			time.Sleep(byteDuration)
 			continue
 		}
-		if readFifoUsingBurst {
+		if readFIFOUsingBurst {
 			data := r.hw.ReadBurst(RXFIFO, int(numBytes))
 			if r.Error() != nil {
 				break
@@ -167,7 +167,7 @@ func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 		}
 		r.receiveBuffer.Reset()
 		if verbose {
-			log.Printf("received %d-byte packet in %s state; %d bytes remaining", size, r.State(), r.ReadNumRxBytes())
+			log.Printf("received %d-byte packet in %s state; %d bytes remaining", size, r.State(), r.ReadNumRXBytes())
 		}
 		return p, rssi
 	}

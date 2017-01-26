@@ -13,7 +13,7 @@ func (r *Radio) DumpRF() {
 	log.Printf("Channel: %d", r.hw.ReadRegister(CHANNR))
 	r.showFreqSynthControl()
 	r.showModemConfig()
-	pa := r.ReadPaTable()
+	pa := r.ReadPATable()
 	n := r.hw.ReadRegister(FREND0) & FREND0_PA_POWER_MASK
 	log.Printf("PATABLE: % X using 0..%d", pa, n)
 }

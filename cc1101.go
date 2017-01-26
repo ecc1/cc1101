@@ -62,7 +62,7 @@ const (
 	TEST0    = 0x2E // Various test settings
 )
 
-type RfConfiguration struct {
+type RFConfiguration struct {
 	IOCFG2   byte // GDO2 output pin configuration
 	IOCFG1   byte // GDO1 output pin configuration
 	IOCFG0   byte // GDO0 output pin configuration
@@ -114,7 +114,7 @@ type RfConfiguration struct {
 
 // Configuration register values after reset,
 // according to data sheet section 29.1.
-var ResetRfConfiguration = RfConfiguration{
+var ResetRFConfiguration = RFConfiguration{
 	IOCFG2:   0x29,
 	IOCFG1:   0x2E,
 	IOCFG0:   0x3F,

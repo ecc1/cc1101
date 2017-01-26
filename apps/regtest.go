@@ -31,7 +31,7 @@ func main() {
 func dumpRegs(r *cc1101.Radio) {
 	fmt.Printf("\nConfiguration registers:\n")
 	regs := r.ReadConfiguration().Bytes()
-	resetValue := cc1101.ResetRfConfiguration.Bytes()
+	resetValue := cc1101.ResetRFConfiguration.Bytes()
 	if r.Error() != nil {
 		log.Fatal(r.Error())
 	}

@@ -20,7 +20,7 @@ func (f flavor) Name() string {
 	return "CC1101"
 }
 
-func (f flavor) SpiDevice() string {
+func (f flavor) SPIDevice() string {
 	return spiDevice
 }
 
@@ -89,7 +89,7 @@ func (r *Radio) Strobe(cmd byte) byte {
 		log.Printf("issuing %s command", strobeName(cmd))
 	}
 	buf := []byte{cmd}
-	r.err = r.hw.SpiDevice().Transfer(buf)
+	r.err = r.hw.SPIDevice().Transfer(buf)
 	return buf[0]
 }
 

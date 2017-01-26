@@ -7,28 +7,28 @@ import (
 )
 
 var (
-	RxFifoOverflow  = errors.New("RXFIFO overflow")
-	TxFifoUnderflow = errors.New("TXFIFO underflow")
+	RXFIFOOverflow  = errors.New("RXFIFO overflow")
+	TXFIFOUnderflow = errors.New("TXFIFO underflow")
 )
 
-func (config *RfConfiguration) Bytes() []byte {
+func (config *RFConfiguration) Bytes() []byte {
 	return (*[TEST0 - IOCFG2 + 1]byte)(unsafe.Pointer(config))[:]
 }
 
-func (r *Radio) ReadConfiguration() *RfConfiguration {
+func (r *Radio) ReadConfiguration() *RFConfiguration {
 	if r.Error() != nil {
 		return nil
 	}
 	regs := r.hw.ReadBurst(IOCFG2, TEST0-IOCFG2+1)
-	return (*RfConfiguration)(unsafe.Pointer(&regs[0]))
+	return (*RFConfiguration)(unsafe.Pointer(&regs[0]))
 }
 
-func (r *Radio) WriteConfiguration(config *RfConfiguration) {
+func (r *Radio) WriteConfiguration(config *RFConfiguration) {
 	r.hw.WriteBurst(IOCFG2, config.Bytes())
 }
 
 func (r *Radio) InitRF(frequency uint32) {
-	rf := ResetRfConfiguration
+	rf := ResetRFConfiguration
 	fb := frequencyToRegisters(frequency)
 
 	rf.IOCFG2 = 0x2F
@@ -187,19 +187,19 @@ func (r *Radio) ReadRSSI() int {
 	return d/2 - rssi_offset
 }
 
-func (r *Radio) ReadPaTable() []byte {
+func (r *Radio) ReadPATable() []byte {
 	return r.hw.ReadBurst(PATABLE, 8)
 }
 
 // Per section 20 of data sheet, read NUM_RXBYTES
 // repeatedly until same value is returned twice.
-func (r *Radio) ReadNumRxBytes() byte {
+func (r *Radio) ReadNumRXBytes() byte {
 	last := byte(0)
 	read := false
 	for r.Error() == nil {
 		n := r.hw.ReadRegister(RXBYTES)
 		if n&RXFIFO_OVERFLOW != 0 {
-			r.err = RxFifoOverflow
+			r.err = RXFIFOOverflow
 		}
 		n &= NUM_RXBYTES_MASK
 		if read && n == last {
@@ -211,10 +211,10 @@ func (r *Radio) ReadNumRxBytes() byte {
 	return 0
 }
 
-func (r *Radio) ReadNumTxBytes() byte {
+func (r *Radio) ReadNumTXBytes() byte {
 	n := r.hw.ReadRegister(TXBYTES)
 	if n&TXFIFO_UNDERFLOW != 0 {
-		r.err = TxFifoUnderflow
+		r.err = TXFIFOUnderflow
 	}
 	return n & NUM_TXBYTES_MASK
 }
@@ -259,11 +259,11 @@ func StateName(state byte) string {
 	return stateName[state]
 }
 
-func (r *Radio) ReadMarcState() byte {
+func (r *Radio) ReadMARCState() byte {
 	return r.hw.ReadRegister(MARCSTATE) & MARCSTATE_MASK
 }
 
-func MarcStateName(state byte) string {
+func MARCStateName(state byte) string {
 	return marcState[state]
 }
 
