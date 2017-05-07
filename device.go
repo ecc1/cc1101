@@ -11,33 +11,33 @@ const (
 	hwVersion = 0x0014
 )
 
-type flavor struct{}
+type hwFlavor struct{}
 
-func (f flavor) Name() string {
+func (f hwFlavor) Name() string {
 	return "CC1101"
 }
 
-func (f flavor) SPIDevice() string {
+func (f hwFlavor) SPIDevice() string {
 	return spiDevice
 }
 
-func (f flavor) Speed() int {
+func (f hwFlavor) Speed() int {
 	return spiSpeed
 }
 
-func (f flavor) CustomCS() int {
+func (f hwFlavor) CustomCS() int {
 	return customCS
 }
 
-func (f flavor) InterruptPin() int {
+func (f hwFlavor) InterruptPin() int {
 	return interruptPin
 }
 
-func (f flavor) ReadSingleAddress(addr byte) byte {
+func (f hwFlavor) ReadSingleAddress(addr byte) byte {
 	return READ_MODE | addr
 }
 
-func (f flavor) ReadBurstAddress(addr byte) byte {
+func (f hwFlavor) ReadBurstAddress(addr byte) byte {
 	reg := addr & 0x3F
 	if 0x30 <= reg && reg <= 0x3D {
 		log.Panicf("no burst access for CC1101 status register %02X", reg)
@@ -45,11 +45,11 @@ func (f flavor) ReadBurstAddress(addr byte) byte {
 	return READ_MODE | BURST_MODE | addr
 }
 
-func (f flavor) WriteSingleAddress(addr byte) byte {
+func (f hwFlavor) WriteSingleAddress(addr byte) byte {
 	return addr
 }
 
-func (f flavor) WriteBurstAddress(addr byte) byte {
+func (f hwFlavor) WriteBurstAddress(addr byte) byte {
 	return BURST_MODE | addr
 }
 
@@ -61,7 +61,7 @@ type Radio struct {
 }
 
 func Open() radio.Interface {
-	r := &Radio{hw: radio.Open(flavor{})}
+	r := &Radio{hw: radio.Open(hwFlavor{})}
 	v := r.Version()
 	if r.Error() != nil {
 		return r
