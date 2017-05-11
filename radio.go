@@ -22,6 +22,7 @@ func init() {
 	}
 }
 
+// Send transmits the given packet.
 func (r *Radio) Send(data []byte) {
 	if len(data) > maxPacketSize {
 		log.Panicf("attempting to send %d-byte packet", len(data))
@@ -79,7 +80,7 @@ func (r *Radio) finishTX(numBytes int) {
 	time.Sleep(time.Duration(numBytes) * byteDuration)
 	for r.Error() == nil {
 		n := r.ReadNumTXBytes()
-		if n == 0 || r.Error() == TXFIFOUnderflow {
+		if n == 0 || r.Error() == ErrTXFIFOUnderflow {
 			break
 		}
 		s := r.ReadState()
@@ -96,6 +97,8 @@ func (r *Radio) finishTX(numBytes int) {
 	}
 }
 
+// Receive listens with the given timeout for an incoming packet.
+// It returns the packet and the associated RSSI.
 func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 	if r.Error() != nil {
 		return nil, 0
@@ -110,7 +113,7 @@ func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 	startedWaiting := time.Time{}
 	for r.Error() == nil {
 		numBytes := r.ReadNumRXBytes()
-		if r.Error() == RXFIFOOverflow {
+		if r.Error() == ErrRXFIFOOverflow {
 			// Flush RX FIFO and change back to RX.
 			r.changeState(SRX, STATE_RX)
 			continue
@@ -126,50 +129,63 @@ func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 			time.Sleep(byteDuration)
 			continue
 		}
-		if readFIFOUsingBurst {
-			data := r.hw.ReadBurst(RXFIFO, int(numBytes))
-			if r.Error() != nil {
-				break
-			}
-			i := bytes.IndexByte(data, 0)
-			if i == -1 {
-				// No zero byte found; packet is still incoming.
-				// Append all the data and continue to receive.
-				_, r.err = r.receiveBuffer.Write(data)
-				continue
-			}
-			// End of packet.
-			_, r.err = r.receiveBuffer.Write(data[:i])
-		} else {
-			c := r.hw.ReadRegister(RXFIFO)
-			if r.Error() != nil {
-				break
-			}
-			if c != 0 {
-				r.err = r.receiveBuffer.WriteByte(c)
-				continue
-			}
+		if !r.readFIFO(int(numBytes)) {
+			continue
 		}
 		// End of packet.
-		r.changeState(SIDLE, STATE_IDLE)
-		r.Strobe(SFRX)
-		size := r.receiveBuffer.Len()
-		if size == 0 {
-			break
-		}
-		r.stats.Packets.Received++
-		r.stats.Bytes.Received += size
-		p := make([]byte, size)
-		_, err := r.receiveBuffer.Read(p)
-		r.SetError(err)
-		if r.Error() != nil {
-			break
-		}
-		r.receiveBuffer.Reset()
-		if verbose {
-			log.Printf("received %d-byte packet in %s state; %d bytes remaining", size, r.State(), r.ReadNumRXBytes())
-		}
-		return p, rssi
+		return r.finishRX(rssi)
 	}
 	return nil, rssi
+}
+
+// readFIFO reads data from the RXFIFO into the receive buffer.
+// In burst mode, it reads n bytes, otherwise a single byte.
+// It returns true when the end of packet is seen.
+func (r *Radio) readFIFO(n int) bool {
+	if readFIFOUsingBurst {
+		data := r.hw.ReadBurst(RXFIFO, n)
+		if r.Error() != nil {
+			return false
+		}
+		i := bytes.IndexByte(data, 0)
+		if i == -1 {
+			// No zero byte found; packet is still incoming.
+			// Append all the data and continue to receive.
+			_, r.err = r.receiveBuffer.Write(data)
+			return false
+		}
+		_, r.err = r.receiveBuffer.Write(data[:i])
+	} else {
+		c := r.hw.ReadRegister(RXFIFO)
+		if r.Error() != nil {
+			return false
+		}
+		if c != 0 {
+			r.err = r.receiveBuffer.WriteByte(c)
+			return false
+		}
+	}
+	return true
+}
+
+func (r *Radio) finishRX(rssi int) ([]byte, int) {
+	r.changeState(SIDLE, STATE_IDLE)
+	r.Strobe(SFRX)
+	size := r.receiveBuffer.Len()
+	if size == 0 {
+		return nil, rssi
+	}
+	r.stats.Packets.Received++
+	r.stats.Bytes.Received += size
+	p := make([]byte, size)
+	_, err := r.receiveBuffer.Read(p)
+	r.SetError(err)
+	if r.Error() != nil {
+		return nil, rssi
+	}
+	r.receiveBuffer.Reset()
+	if verbose {
+		log.Printf("received %d-byte packet in %s state; %d bytes remaining", size, r.State(), r.ReadNumRXBytes())
+	}
+	return p, rssi
 }

@@ -7,14 +7,19 @@ import (
 )
 
 var (
-	RXFIFOOverflow  = errors.New("RXFIFO overflow")
-	TXFIFOUnderflow = errors.New("TXFIFO underflow")
+	// ErrRXFIFOOverflow indicates a RXFIFO overflow condition.
+	ErrRXFIFOOverflow = errors.New("RXFIFO overflow")
+
+	// ErrTXFIFOUnderflow indicates a TXFIFO underflow condition.
+	ErrTXFIFOUnderflow = errors.New("TXFIFO underflow")
 )
 
+// Bytes returns the RFConfiguration as a byte slice.
 func (config *RFConfiguration) Bytes() []byte {
 	return (*[TEST0 - IOCFG2 + 1]byte)(unsafe.Pointer(config))[:]
 }
 
+// ReadConfiguration reads the current RFConfiguration from the radio.
 func (r *Radio) ReadConfiguration() *RFConfiguration {
 	if r.Error() != nil {
 		return nil
@@ -23,10 +28,13 @@ func (r *Radio) ReadConfiguration() *RFConfiguration {
 	return (*RFConfiguration)(unsafe.Pointer(&regs[0]))
 }
 
+// WriteConfiguration writes the given RFConfiguration to the radio.
 func (r *Radio) WriteConfiguration(config *RFConfiguration) {
 	r.hw.WriteBurst(IOCFG2, config.Bytes())
 }
 
+// InitRF initializes the radio to communicate with
+// a Medtronic insulin pump at the given frequency.
 func (r *Radio) InitRF(frequency uint32) {
 	rf := ResetRFConfiguration
 	fb := frequencyToRegisters(frequency)
@@ -133,6 +141,7 @@ func (r *Radio) InitRF(frequency uint32) {
 	r.hw.WriteBurst(PATABLE, []byte{0x00, 0xC0})
 }
 
+// Frequency returns the radio's current frequency, in Hertz.
 func (r *Radio) Frequency() uint32 {
 	return registersToFrequency(r.hw.ReadBurst(FREQ2, 3))
 }
@@ -142,6 +151,7 @@ func registersToFrequency(freq []byte) uint32 {
 	return uint32(uint64(f) * FXOSC >> 16)
 }
 
+// SetFrequency sets the radio to the given frequency, in Hertz.
 func (r *Radio) SetFrequency(freq uint32) {
 	r.hw.WriteBurst(FREQ2, frequencyToRegisters(freq))
 }
@@ -151,55 +161,63 @@ func frequencyToRegisters(freq uint32) []byte {
 	return []byte{byte(f >> 16), byte(f >> 8), byte(f)}
 }
 
+// ReadIF returns the radio's intermediate frequency, in Hertz.
 func (r *Radio) ReadIF() uint32 {
 	f := r.hw.ReadRegister(FSCTRL1)
 	return uint32(uint64(f) * FXOSC >> 10)
 }
 
+// ReadChannelParams returns the radio's channel bandwidth and data rate.
 func (r *Radio) ReadChannelParams() (uint32, uint32) {
 	m4 := r.hw.ReadRegister(MDMCFG4)
-	chanbw_E := (m4 >> MDMCFG4_CHANBW_E_SHIFT) & 0x3
-	chanbw_M := (m4 >> MDMCFG4_CHANBW_M_SHIFT) & 0x3
-	drate_E := (m4 >> MDMCFG4_DRATE_E_SHIFT) & 0xF
-	drate_M := r.hw.ReadRegister(MDMCFG3)
-	chanbw := uint32(FXOSC / ((4 + uint64(chanbw_M)) << (chanbw_E + 3)))
-	drate := uint32(((256 + uint64(drate_M)) << drate_E * FXOSC) >> 28)
+	chanbwExp := (m4 >> MDMCFG4_CHANBW_E_SHIFT) & 0x3
+	chanbwMant := (m4 >> MDMCFG4_CHANBW_M_SHIFT) & 0x3
+	drateExp := (m4 >> MDMCFG4_DRATE_E_SHIFT) & 0xF
+	drateMant := r.hw.ReadRegister(MDMCFG3)
+	chanbw := uint32(FXOSC / ((4 + uint64(chanbwMant)) << (chanbwExp + 3)))
+	drate := uint32(((256 + uint64(drateMant)) << drateExp * FXOSC) >> 28)
 	return chanbw, drate
 }
 
+// ReadModemConfig returns the radio's modem configuration:
+// whether FEC is enabled, the minimum preamble length, and the channel spacing.
 func (r *Radio) ReadModemConfig() (bool, uint8, uint32) {
 	m1 := r.hw.ReadRegister(MDMCFG1)
 	fec := m1&MDMCFG1_FEC_EN != 0
 	minPreamble := numPreamble[(m1&MDMCFG1_NUM_PREAMBLE_MASK)>>4]
-	chanspc_E := m1 & MDMCFG1_CHANSPC_E_MASK
-	chanspc_M := r.hw.ReadRegister(MDMCFG0)
-	chanspc := uint32(((256 + uint64(chanspc_M)) << chanspc_E * FXOSC) >> 18)
+	chanspcExp := m1 & MDMCFG1_CHANSPC_E_MASK
+	chanspcMant := r.hw.ReadRegister(MDMCFG0)
+	chanspc := uint32(((256 + uint64(chanspcMant)) << chanspcExp * FXOSC) >> 18)
 	return fec, minPreamble, chanspc
 }
 
+// ReadRSSI returns the radio's RSSI, in dBm.
 func (r *Radio) ReadRSSI() int {
-	const rssi_offset = 74 // see data sheet section 17.3
+	const rssiOffset = 74 // see data sheet section 17.3
 	rssi := r.hw.ReadRegister(RSSI)
 	d := int(rssi)
 	if d >= 128 {
 		d -= 256
 	}
-	return d/2 - rssi_offset
+	return d/2 - rssiOffset
 }
 
+// ReadPATable returns the contents of PATABLE.
 func (r *Radio) ReadPATable() []byte {
 	return r.hw.ReadBurst(PATABLE, 8)
 }
 
-// Per section 20 of data sheet, read NUM_RXBYTES
-// repeatedly until same value is returned twice.
+// ReadNumRXBytes reads the RXBYTES register
+// repeatedly until same value is returned twice
+// (per section 20 of the data sheet)
+// and detects RXFIFO overflow.
 func (r *Radio) ReadNumRXBytes() byte {
 	last := byte(0)
 	read := false
 	for r.Error() == nil {
 		n := r.hw.ReadRegister(RXBYTES)
 		if n&RXFIFO_OVERFLOW != 0 {
-			r.err = RXFIFOOverflow
+			r.err = ErrRXFIFOOverflow
 		}
 		n &= NUM_RXBYTES_MASK
 		if read && n == last {
@@ -211,10 +229,12 @@ func (r *Radio) ReadNumRXBytes() byte {
 	return 0
 }
 
+// ReadNumTXBytes reads the TXBYTES register
+// and detects TXFIFO underflow.
 func (r *Radio) ReadNumTXBytes() byte {
 	n := r.hw.ReadRegister(TXBYTES)
 	if n&TXFIFO_UNDERFLOW != 0 {
-		r.err = TXFIFOUnderflow
+		r.err = ErrTXFIFOUnderflow
 	}
 	return n & NUM_TXBYTES_MASK
 }
@@ -246,23 +266,28 @@ func (r *Radio) changeState(strobe byte, desired byte) {
 	}
 }
 
+// State returns the radio's current state as a string.
 func (r *Radio) State() string {
 	return StateName(r.ReadState())
 }
 
+// ReadState returns the radio's current state.
 func (r *Radio) ReadState() byte {
 	status := r.Strobe(SNOP)
 	return (status >> STATE_SHIFT) & STATE_MASK
 }
 
+// StateName converts a state value to a string.
 func StateName(state byte) string {
 	return stateName[state]
 }
 
+// ReadMARCState returns the radio's MARC state.
 func (r *Radio) ReadMARCState() byte {
 	return r.hw.ReadRegister(MARCSTATE) & MARCSTATE_MASK
 }
 
+// MARCStateName converts a MARC state value to a string.
 func MARCStateName(state byte) string {
 	return marcState[state]
 }

@@ -4,6 +4,7 @@ import (
 	"log"
 )
 
+// DumpRF logs the radio's RF state.
 func (r *Radio) DumpRF() {
 	if r.Error() != nil {
 		log.Fatal(r.Error())
