@@ -13,11 +13,6 @@ const (
 
 type hwFlavor struct{}
 
-// Name returns the radio's name.
-func (f hwFlavor) Name() string {
-	return "CC1101"
-}
-
 // SPIDevice returns the pathname of the radio's SPI device.
 func (f hwFlavor) SPIDevice() string {
 	return spiDevice
@@ -96,6 +91,16 @@ func (r *Radio) Version() uint16 {
 	p := r.hw.ReadRegister(PARTNUM)
 	v := r.hw.ReadRegister(VERSION)
 	return uint16(p)<<8 | uint16(v)
+}
+
+// Name returns the radio's name.
+func (r *Radio) Name() string {
+	return "CC1101"
+}
+
+// Device returns the pathname of the radio's device.
+func (r *Radio) Device() string {
+	return spiDevice
 }
 
 // Strobe writes the given command to the radio.
