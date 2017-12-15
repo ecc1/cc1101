@@ -110,7 +110,6 @@ func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 	}
 	r.hw.AwaitInterrupt(timeout)
 	rssi := r.ReadRSSI()
-	startedWaiting := time.Time{}
 	for r.Error() == nil {
 		numBytes := r.ReadNumRXBytes()
 		if r.Error() == ErrRXFIFOOverflow {
@@ -121,12 +120,11 @@ func (r *Radio) Receive(timeout time.Duration) ([]byte, int) {
 		// Don't read last byte of FIFO if packet is still
 		// being received. See Section 20 of data sheet.
 		if numBytes < 2 {
-			if startedWaiting.IsZero() {
-				startedWaiting = time.Now()
-			} else if time.Since(startedWaiting) >= timeout {
+			if timeout <= 0 {
 				break
 			}
 			time.Sleep(byteDuration)
+			timeout -= byteDuration
 			continue
 		}
 		if !r.readFIFO(int(numBytes)) {
