@@ -40,10 +40,6 @@ func (r *Radio) Send(data []byte) {
 	copy(packet, data)
 	defer r.changeState(SIDLE, STATE_IDLE)
 	r.transmit(packet)
-	if r.Error() == nil {
-		r.stats.Packets.Sent++
-		r.stats.Bytes.Sent += len(data)
-	}
 }
 
 func (r *Radio) transmit(data []byte) {
@@ -173,8 +169,6 @@ func (r *Radio) finishRX(rssi int) ([]byte, int) {
 	if size == 0 {
 		return nil, rssi
 	}
-	r.stats.Packets.Received++
-	r.stats.Bytes.Received += size
 	p := make([]byte, size)
 	_, err := r.receiveBuffer.Read(p)
 	r.SetError(err)
