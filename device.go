@@ -14,32 +14,32 @@ const (
 type hwFlavor struct{}
 
 // SPIDevice returns the pathname of the radio's SPI device.
-func (f hwFlavor) SPIDevice() string {
+func (hwFlavor) SPIDevice() string {
 	return spiDevice
 }
 
 // Speed returns the radio's SPI speed.
-func (f hwFlavor) Speed() int {
+func (hwFlavor) Speed() int {
 	return spiSpeed
 }
 
 // CustomCS returns the GPIO pin number to use as a custom chip-select for the radio.
-func (f hwFlavor) CustomCS() int {
+func (hwFlavor) CustomCS() int {
 	return customCS
 }
 
 // InterruptPin returns the GPIO pin number to use for receive interrupts.
-func (f hwFlavor) InterruptPin() int {
+func (hwFlavor) InterruptPin() int {
 	return interruptPin
 }
 
 // ReadSingleAddress returns the encoding of an address for SPI read operations.
-func (f hwFlavor) ReadSingleAddress(addr byte) byte {
+func (hwFlavor) ReadSingleAddress(addr byte) byte {
 	return READ_MODE | addr
 }
 
 // ReadBurstAddress returns the encoding of an address for SPI burst-read operations.
-func (f hwFlavor) ReadBurstAddress(addr byte) byte {
+func (hwFlavor) ReadBurstAddress(addr byte) byte {
 	reg := addr & 0x3F
 	if 0x30 <= reg && reg <= 0x3D {
 		log.Panicf("no burst access for CC1101 status register %02X", reg)
@@ -48,12 +48,12 @@ func (f hwFlavor) ReadBurstAddress(addr byte) byte {
 }
 
 // WriteSingleAddress returns the (identity) encoding of an address for SPI write operations.
-func (f hwFlavor) WriteSingleAddress(addr byte) byte {
+func (hwFlavor) WriteSingleAddress(addr byte) byte {
 	return addr
 }
 
 // WriteBurstAddress returns the encoding of an address for SPI burst-write operations.
-func (f hwFlavor) WriteBurstAddress(addr byte) byte {
+func (hwFlavor) WriteBurstAddress(addr byte) byte {
 	return BURST_MODE | addr
 }
 
@@ -93,12 +93,12 @@ func (r *Radio) Version() uint16 {
 }
 
 // Name returns the radio's name.
-func (r *Radio) Name() string {
+func (*Radio) Name() string {
 	return "CC1101"
 }
 
 // Device returns the pathname of the radio's device.
-func (r *Radio) Device() string {
+func (*Radio) Device() string {
 	return spiDevice
 }
 
