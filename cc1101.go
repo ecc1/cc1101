@@ -2,7 +2,6 @@ package cc1101
 
 // Register definitions for Texas Instruments CC1101.
 
-// nolint
 const (
 	// Crystal frequency in Hz.
 	FXOSC = 24000000
@@ -62,7 +61,6 @@ const (
 )
 
 // RFConfiguration represents the radio's configuration registers.
-// nolint
 type RFConfiguration struct {
 	IOCFG2   byte // GDO2 output pin configuration
 	IOCFG1   byte // GDO1 output pin configuration
@@ -165,7 +163,6 @@ var ResetRFConfiguration = RFConfiguration{
 	TEST0:    2<<2 | 1<<1 | 1<<0,
 }
 
-// nolint
 const (
 	// Command strobes (write-only).
 
